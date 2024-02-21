@@ -1,0 +1,11 @@
+SELECT 
+    Products.ProductName, 
+    Categories.CategoryName
+FROM 
+    Products Categories
+LEFT JOIN 
+    ProductCategory ProductsCategories ON Products.ProductId = ProductsCategories.ProductId
+LEFT JOIN 
+    CategoriesProd Categories ON ProductsCategories.CategoryId = Categories.CategoryId
+ORDER BY 
+    Products.ProductName;
