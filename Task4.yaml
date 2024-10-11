@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-deployment
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      # Используем node affinity для распределения подов по разным нодам
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - node1
+                - node2
+                - node3
+                - node4
+                - node5
+      containers:
+      - name: web-app-container
+        image: your-web-app-image:latest
+        resources:
+          requests: # Мы устанавливаем запросы ресурсов (requests) на 100m CPU и 128Mi памяти, что соответствует описанному потреблению ресурсов после инициализации.
+            cpu: 100m
+            memory: 128Mi
+          limits: # Ограничения (limits) установлены на 200m CPU и 256Mi памяти, что обеспечивает некоторый запас.
+            cpu: 200m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          failureThreshold: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        # Используем init container для инициализации
+        initContainers:
+        - name: initialization
+          image: busybox:1.28
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              sleep 5 && \ #Init container спит 5 секунд, что соответствует описанной длительности инициализации.
+              echo "Initialization completed" > /tmp/init-complete
+          volumeMounts:
+          - name: init-volume
+            mountPath: /tmp #После завершения инициализации, init container записывает сообщение в временный файл.
+        volumes:
+        - name: init-volume
+          emptyDir: {} #Основной контейнер не начинает обрабатывать запросы до тех пор, пока init container не завершит свою работу.
